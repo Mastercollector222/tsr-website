@@ -18,7 +18,7 @@ export default function Leaderboard() {
       <div className="text-center mb-12">
         <h1 className="text-4xl sm:text-6xl font-bold text-tsr-primary">TSR Leaderboard</h1>
         <p className="text-xl text-gray-600 mt-4">
-          Top TSR Token Holders
+          Top 50 TSR Token Holders
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default function Leaderboard() {
               {holders.map((holder, index) => (
                 <tr 
                   key={holder.address}
-                  className={holder.address === user?.addr ? "bg-blue-50" : undefined}
+                  className={`${holder.address === user?.addr ? "bg-blue-50" : ""} hover:bg-gray-50 transition-colors`}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">#{index + 1}</div>
