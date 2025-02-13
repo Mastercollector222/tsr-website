@@ -8,6 +8,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 const MENU_ITEMS = [
   { name: 'Flow Token', href: '/flow-token' },
   { name: 'EVM Token', href: '/evm-token' },
+  { name: 'Rewards', href: '/rewards' },
   { name: 'Leaderboard', href: '/leaderboard' },
   { name: 'Account', href: '/account' },
   { name: 'About', href: '/about' },
