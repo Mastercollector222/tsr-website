@@ -12,7 +12,7 @@ config({
   "walletConnect.metadata": {
     name: 'Top Shot Rewards',
     description: 'Top Shot Rewards Platform',
-    url: 'http://localhost:5174',
+    url: window.location.origin,
     icons: ['https://placekitten.com/g/200/200']
   },
   "service.WalletConnect": {
