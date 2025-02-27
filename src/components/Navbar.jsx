@@ -4,6 +4,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { Fragment, useState } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useAuth, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 
 const MENU_ITEMS = [
   { name: 'Flow Token', href: '/flow-token' },
@@ -16,9 +17,17 @@ const MENU_ITEMS = [
   { name: 'Roadmap', href: '/roadmap' },
 ];
 
+// Add profile menu item that only shows when signed in
+const PROFILE_MENU_ITEM = { name: 'Profile', href: '/profile' };
+
 export default function Navbar() {
   const { user, loading, isConnected, connectWallet, disconnectWallet } = useFlowWallet();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Check if Clerk is properly initialized
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const isClerkConfigured = !!clerkPubKey;
 
   return (
     <nav className="bg-white shadow-lg">
@@ -61,6 +70,22 @@ export default function Navbar() {
                           )}
                         </Menu.Item>
                       ))}
+                      
+                      {/* Show Profile link only when signed in */}
+                      {isClerkConfigured && isAuthLoaded && isSignedIn && (
+                        <Menu.Item>
+                          {({ active }) => (
+                            <Link
+                              to={PROFILE_MENU_ITEM.href}
+                              className={`${
+                                active ? 'bg-tsr-primary text-white' : 'text-gray-900'
+                              } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                            >
+                              {PROFILE_MENU_ITEM.name}
+                            </Link>
+                          )}
+                        </Menu.Item>
+                      )}
                     </div>
                   </Menu.Items>
                 </Transition>
@@ -84,7 +109,37 @@ export default function Navbar() {
             </button>
           </div>
 
-          <div className="hidden sm:flex sm:items-center sm:ml-6">
+          <div className="hidden sm:flex sm:items-center sm:ml-6 space-x-4">
+            {/* Authentication UI */}
+            {isClerkConfigured && isAuthLoaded ? (
+              <>
+                <SignedIn>
+                  <Link 
+                    to="/profile"
+                    className="text-gray-600 hover:text-tsr-primary px-3 py-2 rounded-md"
+                  >
+                    Profile
+                  </Link>
+                  <UserButton afterSignOutUrl="/" />
+                </SignedIn>
+                <SignedOut>
+                  <Link 
+                    to="/sign-in" 
+                    className="text-gray-600 hover:text-tsr-primary px-3 py-2 rounded-md"
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    to="/sign-up" 
+                    className="bg-tsr-primary text-white px-4 py-2 rounded-md hover:bg-tsr-primary/90 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </SignedOut>
+              </>
+            ) : null}
+            
+            {/* Flow Wallet Connection */}
             {!loading && (
               <button
                 onClick={isConnected ? disconnectWallet : connectWallet}
@@ -120,6 +175,47 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
+            
+            {/* Show Profile link in mobile menu only when signed in */}
+            {isClerkConfigured && isAuthLoaded && isSignedIn && (
+              <Link
+                to={PROFILE_MENU_ITEM.href}
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-tsr-primary hover:bg-gray-50"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {PROFILE_MENU_ITEM.name}
+              </Link>
+            )}
+            
+            {/* Authentication UI for mobile */}
+            {isClerkConfigured && isAuthLoaded ? (
+              <div className="border-t border-gray-200 pt-2">
+                <SignedIn>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-gray-700">Account</span>
+                    <UserButton afterSignOutUrl="/" />
+                  </div>
+                </SignedIn>
+                <SignedOut>
+                  <Link 
+                    to="/sign-in" 
+                    className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-tsr-primary hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    to="/sign-up" 
+                    className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-tsr-primary hover:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </SignedOut>
+              </div>
+            ) : null}
+            
+            {/* Flow Wallet Connection for mobile */}
             {!loading && (
               <div className="px-3 py-2">
                 <button

@@ -47,13 +47,18 @@ export function FlowProvider({ children }) {
 
   const disconnectWallet = async () => {
     console.log('FlowProvider: Disconnecting wallet...');
+    setLoading(true);
     try {
       await fcl.unauthenticate();
     } catch (err) {
       console.error('FlowProvider: Failed to disconnect wallet:', err);
       setError(err);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const isConnected = user?.loggedIn === true;
 
   // If there's an error, render it
   if (error) {
@@ -65,26 +70,22 @@ export function FlowProvider({ children }) {
     );
   }
 
-  const value = {
-    user,
-    loading,
-    error,
-    connectWallet,
-    disconnectWallet,
-    isConnected: Boolean(user?.loggedIn && user?.addr)
-  };
-
   return (
-    <FlowContext.Provider value={value}>
+    <FlowContext.Provider 
+      value={{
+        user,
+        loading,
+        error,
+        connectWallet,
+        disconnectWallet,
+        isConnected
+      }}
+    >
       {children}
     </FlowContext.Provider>
   );
 }
 
 export function useFlowWallet() {
-  const context = useContext(FlowContext);
-  if (!context) {
-    throw new Error('useFlowWallet must be used within a FlowProvider');
-  }
-  return context;
+  return useContext(FlowContext);
 }

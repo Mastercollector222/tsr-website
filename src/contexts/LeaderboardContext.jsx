@@ -7,39 +7,72 @@ const LeaderboardContext = createContext({});
 export function LeaderboardProvider({ children }) {
   const [holders, setHolders] = useState([]);
   const { user } = useFlowWallet();
-  const { tsr } = useTokenBalances(user?.addr);
+  const { tsr: tsrBalance, loading: balanceLoading } = useTokenBalances(user?.addr);
 
   const updateUserBalance = useCallback((address, balance) => {
+    if (!address || balance === undefined) return;
+    
     setHolders(prevHolders => {
       const holderIndex = prevHolders.findIndex(h => h.address === address);
+      const numBalance = Number(balance);
       
       if (holderIndex === -1) {
         // Add new holder
-        return [...prevHolders, { address, balance }].sort((a, b) => b.balance - a.balance);
+        return [...prevHolders, { address, balance: numBalance }].sort((a, b) => b.balance - a.balance);
       }
 
       // Update existing holder
       const newHolders = [...prevHolders];
-      newHolders[holderIndex].balance = balance;
+      newHolders[holderIndex].balance = numBalance;
       return newHolders.sort((a, b) => b.balance - a.balance);
     });
   }, []);
 
   // Update current user's balance whenever it changes
   useEffect(() => {
-    if (user?.addr && tsr) {
-      updateUserBalance(user.addr, tsr);
+    if (user?.addr && tsrBalance && !balanceLoading) {
+      console.log('Updating user balance:', user.addr, tsrBalance);
+      updateUserBalance(user.addr, tsrBalance);
     }
-  }, [user?.addr, tsr, updateUserBalance]);
+  }, [user?.addr, tsrBalance, balanceLoading, updateUserBalance]);
 
   // Initialize holders list
-  const initializeHolders = useCallback((initialHolders) => {
-    setHolders(initialHolders.sort((a, b) => b.balance - a.balance));
-  }, []);
+  const initializeHolders = useCallback(async (initialHolders) => {
+    return new Promise((resolve) => {
+      const sortedHolders = initialHolders.sort((a, b) => b.balance - a.balance);
+      setHolders(sortedHolders);
+      
+      // If we have a user and their balance, make sure it's updated
+      if (user?.addr && tsrBalance && !balanceLoading) {
+        updateUserBalance(user.addr, tsrBalance);
+      }
+      
+      resolve();
+    });
+  }, [user?.addr, tsrBalance, balanceLoading, updateUserBalance]);
 
   const getUserRank = useCallback((address) => {
-    return holders.findIndex(h => h.address === address) + 1;
-  }, [holders]);
+    if (!address || !holders.length) return null;
+    const holderIndex = holders.findIndex(h => h.address === address);
+    
+    if (holderIndex === -1) {
+      // If user not found in holders list but we have their balance
+      if (user?.addr === address && tsrBalance) {
+        return {
+          rank: 'N/A',
+          balance: tsrBalance,
+          address: address
+        };
+      }
+      return null;
+    }
+    
+    return {
+      rank: holderIndex + 1,
+      balance: holders[holderIndex].balance,
+      address: address
+    };
+  }, [holders, user?.addr, tsrBalance]);
 
   return (
     <LeaderboardContext.Provider 
@@ -47,7 +80,8 @@ export function LeaderboardProvider({ children }) {
         holders,
         updateUserBalance,
         initializeHolders,
-        getUserRank
+        getUserRank,
+        loading: balanceLoading
       }}
     >
       {children}

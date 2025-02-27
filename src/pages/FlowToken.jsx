@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 export default function FlowToken() {
   return (
-    <div className="space-y-12">
+    <div className="w-full space-y-12">
       {/* Hero Section */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}

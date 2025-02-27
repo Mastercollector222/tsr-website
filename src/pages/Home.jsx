@@ -6,7 +6,7 @@ export default function Home() {
   const { user, loading, connectWallet, isConnected } = useFlowWallet();
 
   return (
-    <div className="space-y-16">
+    <div className="w-full space-y-16">
       {/* Hero Section */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
