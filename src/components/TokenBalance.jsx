@@ -20,10 +20,23 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
   // Load token balance when component mounts or when authentication state changes
   useEffect(() => {
     const loadTokenBalance = async () => {
-      if (isAuthenticated && signer && tokenAddress) {
+      if (isAuthenticated && tokenAddress) {
         setIsLoading(true);
         setError(null);
+        
+        // Check if signer is available
+        if (!signer) {
+          console.log('No wallet address available, skipping balance fetch');
+          setError('Please connect your wallet to view your token balance');
+          setIsLoading(false);
+          return;
+        }
+        
         try {
+          // Get the wallet address to verify we have it
+          const address = await signer.getAddress();
+          console.log('Fetching balance for address:', address);
+          
           const result = await getTokenBalance(tokenAddress);
           if (result) {
             setLocalTokenBalance(result.balance);
