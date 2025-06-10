@@ -14,8 +14,6 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [localTokenBalance, setLocalTokenBalance] = useState(null);
-  const [localTokenInfo, setLocalTokenInfo] = useState(null);
 
   // Load token balance when component mounts or when authentication state changes
   useEffect(() => {
@@ -37,11 +35,10 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
           const address = await signer.getAddress();
           console.log('Fetching balance for address:', address);
           
-          const result = await getTokenBalance(tokenAddress);
-          if (result) {
-            setLocalTokenBalance(result.balance);
-            setLocalTokenInfo(result.info);
-          }
+          // Use the getTokenBalance function from PrivyContext
+          // The result will be stored in the tokenBalance and tokenInfo state variables
+          await getTokenBalance(tokenAddress);
+          
         } catch (err) {
           console.error('Failed to load token balance:', err);
           setError('Failed to load token balance. Please try again.');
@@ -101,15 +98,15 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-semibold mb-4">Your Token Balance</h2>
       
-      {localTokenBalance && localTokenInfo ? (
+      {tokenBalance && tokenInfo ? (
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Token:</span>
-            <span className="font-medium">{localTokenInfo.name} ({localTokenInfo.symbol})</span>
+            <span className="font-medium">{tokenInfo.name} ({tokenInfo.symbol})</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Balance:</span>
-            <span className="font-medium">{parseFloat(localTokenBalance).toLocaleString()} {localTokenInfo.symbol}</span>
+            <span className="font-medium">{parseFloat(tokenBalance).toLocaleString()} {tokenInfo.symbol}</span>
           </div>
         </div>
       ) : (
