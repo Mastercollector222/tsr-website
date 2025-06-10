@@ -1,6 +1,39 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivyAuth } from '../contexts/PrivyContext';
+import TokenBalance from '../components/TokenBalance';
+import TokenPurchase from '../components/TokenPurchase';
+
+// Sample items that can be purchased with tokens
+const SAMPLE_ITEMS = [
+  { id: 1, name: 'Premium Membership', price: '50', description: 'Access to exclusive content and features' },
+  { id: 2, name: 'Digital Collectible', price: '25', description: 'Limited edition digital collectible' },
+  { id: 3, name: 'Physical Merchandise', price: '100', description: 'T-shirt with TSR logo' },
+];
+
+// This would be your actual token address on the Flow EVM
+const TOKEN_ADDRESS = '0x1234567890123456789012345678901234567890'; // Replace with your actual token contract address
+
+// This would be the recipient address for purchases (e.g., your treasury/merchant wallet)
+const RECIPIENT_ADDRESS = '0x0987654321098765432109876543210987654321'; // Replace with your actual recipient address
 
 export default function EvmToken() {
+  const { isAuthenticated, login } = usePrivyAuth();
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [purchaseComplete, setPurchaseComplete] = useState(false);
+
+  const handlePurchaseComplete = (result) => {
+    setPurchaseComplete(true);
+    // You could also add additional logic here, like updating a database
+    console.log('Purchase complete:', result);
+    
+    // Reset after a delay
+    setTimeout(() => {
+      setSelectedItem(null);
+      setPurchaseComplete(false);
+    }, 5000);
+  };
+
   return (
     <div className="w-full space-y-12">
       {/* Hero Section */}
@@ -11,8 +44,69 @@ export default function EvmToken() {
       >
         <h1 className="text-4xl sm:text-6xl font-bold text-tsr-primary">$TSR EVM Token</h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          The MEME token bridging Top Shot Rewards across multiple blockchains.
+          View your balance and make purchases with TSR tokens on Flow EVM
         </p>
+      </motion.section>
+
+      {/* Token Balance and Purchase Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="max-w-4xl mx-auto"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="md:col-span-1">
+            <TokenBalance 
+              tokenAddress={TOKEN_ADDRESS}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            {selectedItem ? (
+              <TokenPurchase
+                tokenAddress={TOKEN_ADDRESS}
+                recipientAddress={RECIPIENT_ADDRESS}
+                itemId={selectedItem.id}
+                itemName={selectedItem.name}
+                itemPrice={selectedItem.price}
+                onPurchaseComplete={handlePurchaseComplete}
+              />
+            ) : (
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold mb-4">Available Items</h2>
+                
+                {!isAuthenticated ? (
+                  <div className="text-center py-4">
+                    <p className="mb-4 text-gray-700">Connect your wallet to make purchases</p>
+                    <button 
+                      onClick={login}
+                      className="bg-tsr-primary text-white px-4 py-2 rounded-md hover:bg-tsr-primary/90"
+                    >
+                      Connect Wallet
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {SAMPLE_ITEMS.map((item) => (
+                      <div 
+                        key={item.id}
+                        className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <span className="text-tsr-primary font-semibold">{item.price} tokens</span>
+                        </div>
+                        <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </motion.section>
 
       {/* Trading Section */}
