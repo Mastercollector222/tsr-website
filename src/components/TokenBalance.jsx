@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePrivyAuth } from '../contexts/PrivyContext';
 
 export default function TokenBalance({ tokenAddress, recipientAddress }) {
@@ -14,11 +14,17 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const hasLoadedRef = useRef(false);
 
   // Load token balance when component mounts or when authentication state changes
   useEffect(() => {
+    // Only load balance if we haven't already or if critical dependencies change
+    const shouldLoadBalance = 
+      !hasLoadedRef.current || 
+      (isAuthenticated && signer && tokenAddress);
+    
     const loadTokenBalance = async () => {
-      if (isAuthenticated && tokenAddress) {
+      if (isAuthenticated && tokenAddress && shouldLoadBalance) {
         setIsLoading(true);
         setError(null);
         
@@ -36,8 +42,10 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
           console.log('Fetching balance for address:', address);
           
           // Use the getTokenBalance function from PrivyContext
-          // The result will be stored in the tokenBalance and tokenInfo state variables
           await getTokenBalance(tokenAddress);
+          
+          // Mark as loaded to prevent infinite loops
+          hasLoadedRef.current = true;
           
         } catch (err) {
           console.error('Failed to load token balance:', err);
@@ -45,14 +53,23 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
         } finally {
           setIsLoading(false);
         }
+      } else if (tokenBalance) {
+        // If we already have a balance, don't show loading
+        setIsLoading(false);
       }
     };
 
     loadTokenBalance();
-  }, [isAuthenticated, signer, tokenAddress, getTokenBalance]);
+    
+    // Clean up function
+    return () => {
+      // Reset the ref when component unmounts
+      hasLoadedRef.current = false;
+    };
+  }, [isAuthenticated, signer, tokenAddress]);
 
-  // Display loading state
-  if (isLoading) {
+  // Display loading state only if we're loading AND don't have a balance yet
+  if (isLoading && !tokenBalance) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex justify-center">

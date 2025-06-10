@@ -100,9 +100,14 @@ export function PrivyAuthProvider({ children }) {
       
       console.log(`Token balance for ${address}: ${formattedBalance} ${symbol}`);
       
-      // Set token balance in state
-      setTokenBalance(formattedBalance);
-      setTokenInfo({ symbol, name, decimals });
+      // Only update state if the balance has changed
+      // This prevents unnecessary re-renders
+      if (formattedBalance !== tokenBalance || 
+          !tokenInfo || 
+          tokenInfo.symbol !== symbol) {
+        setTokenBalance(formattedBalance);
+        setTokenInfo({ symbol, name, decimals });
+      }
       
       return { 
         balance: formattedBalance,
