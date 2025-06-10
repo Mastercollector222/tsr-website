@@ -11,8 +11,8 @@ const SAMPLE_ITEMS = [
   { id: 3, name: 'Physical Merchandise', price: '100', description: 'T-shirt with TSR logo' },
 ];
 
-// This would be your actual token address on the Flow EVM
-const TOKEN_ADDRESS = '0x1234567890123456789012345678901234567890'; // Replace with your actual token contract address
+// Token address on the Flow EVM
+const TOKEN_ADDRESS = '0x169bb04590fbf18b09739f951274aa5650dfccde'; // TSR token address
 
 // This would be the recipient address for purchases (e.g., your treasury/merchant wallet)
 const RECIPIENT_ADDRESS = '0x0987654321098765432109876543210987654321'; // Replace with your actual recipient address
