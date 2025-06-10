@@ -35,43 +35,36 @@ export function PrivyAuthProvider({ children }) {
   // Set up Ethereum provider and signer when wallet is connected
   useEffect(() => {
     const setupEthereumProvider = async () => {
-      if (privy.authenticated && privy.user) {
-        try {
-          // Check if user has a wallet linked
-          const hasWallet = privy.user.linkedAccounts?.some(account => 
-            account.type === 'wallet' || account.type === 'email'
-          );
-          
-          if (hasWallet) {
-            // Get the wallet provider from Privy
-            // Use the correct method to get Ethereum provider
-            const ethereumProvider = await privy.getWalletClient();
-            
-            if (ethereumProvider) {
-              // Create ethers provider from Privy's provider
-              const ethersProvider = new ethers.BrowserProvider(ethereumProvider);
-              setProvider(ethersProvider);
-              
-              // Get signer for transactions
-              const ethersSigner = await ethersProvider.getSigner();
-              setSigner(ethersSigner);
-            }
-          } else {
-            console.log('User authenticated but no wallet linked');
-          }
-        } catch (error) {
-          console.error('Failed to setup Ethereum provider:', error);
-        }
-      } else {
+      if (!privy.authenticated || !privy.ready) {
         // Reset provider and signer when not authenticated
         setProvider(null);
         setSigner(null);
         setTokenBalance(null);
+        return;
+      }
+      
+      try {
+        // Use the standard Ethereum provider
+        if (window.ethereum) {
+          console.log('Using window.ethereum provider');
+          const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+          setProvider(ethersProvider);
+          
+          // Get signer for transactions
+          const ethersSigner = await ethersProvider.getSigner();
+          setSigner(ethersSigner);
+        } else {
+          console.log('No ethereum provider available');
+        }
+      } catch (error) {
+        console.error('Failed to setup Ethereum provider:', error);
       }
     };
     
-    setupEthereumProvider();
-  }, [privy.authenticated, privy.user]);
+    if (privy.ready) {
+      setupEthereumProvider();
+    }
+  }, [privy.authenticated, privy.ready]);
 
   // Get token balance for a given token address
   const getTokenBalance = async (tokenAddress) => {

@@ -30,9 +30,6 @@ function App() {
     console.warn("⚠️ Missing Privy App ID. Please add it to your .env file. Using a dummy ID for now, but authentication won't work properly.");
   }
 
-  // Get the current window location for proper WalletConnect configuration
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://topshotcommunityrewards.com';
-
   return (
     <PrivyProvider 
       appId={appId}
@@ -41,14 +38,7 @@ function App() {
           theme: 'light',
           accentColor: '#4F46E5' // Indigo color to match your design
         },
-        walletConnectProjectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '',
-        embeddedWallets: {
-          noPromptOnSignature: true
-        },
-        defaultChain: 'flow-testnet',
-        supportedChains: ['flow-testnet', 'flow-mainnet', 'ethereum'],
-        loginMethods: ['email', 'wallet'],
-        appOrigin: appUrl
+        loginMethods: ['email', 'wallet']
       }}
     >
       <PrivyAuthProvider>
