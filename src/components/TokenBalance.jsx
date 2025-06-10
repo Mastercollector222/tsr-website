@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { usePrivyAuth } from '../contexts/PrivyContext';
 
 export default function TokenBalance({ tokenAddress, recipientAddress }) {
@@ -14,59 +14,35 @@ export default function TokenBalance({ tokenAddress, recipientAddress }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const hasLoadedRef = useRef(false);
 
-  // Load token balance when component mounts or when authentication state changes
+  // Load token balance only once when component mounts or when critical dependencies change
   useEffect(() => {
-    // Only load balance if we haven't already or if critical dependencies change
-    const shouldLoadBalance = 
-      !hasLoadedRef.current || 
-      (isAuthenticated && signer && tokenAddress);
-    
+    // Only attempt to load balance if we're authenticated and have a token address
     const loadTokenBalance = async () => {
-      if (isAuthenticated && tokenAddress && shouldLoadBalance) {
+      if (!isAuthenticated || !tokenAddress || !signer) {
+        return;
+      }
+      
+      try {
         setIsLoading(true);
         setError(null);
         
-        // Check if signer is available
-        if (!signer) {
-          console.log('No wallet address available, skipping balance fetch');
-          setError('Please connect your wallet to view your token balance');
-          setIsLoading(false);
-          return;
-        }
-        
-        try {
-          // Get the wallet address to verify we have it
-          const address = await signer.getAddress();
-          console.log('Fetching balance for address:', address);
-          
-          // Use the getTokenBalance function from PrivyContext
-          await getTokenBalance(tokenAddress);
-          
-          // Mark as loaded to prevent infinite loops
-          hasLoadedRef.current = true;
-          
-        } catch (err) {
-          console.error('Failed to load token balance:', err);
-          setError('Failed to load token balance. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      } else if (tokenBalance) {
-        // If we already have a balance, don't show loading
+        // Call getTokenBalance once - it's now designed to prevent duplicate fetches
+        await getTokenBalance(tokenAddress);
+      } catch (err) {
+        console.error('Failed to load token balance:', err);
+        setError('Failed to load token balance. Please try again.');
+      } finally {
         setIsLoading(false);
       }
     };
 
     loadTokenBalance();
     
-    // Clean up function
-    return () => {
-      // Reset the ref when component unmounts
-      hasLoadedRef.current = false;
-    };
-  }, [isAuthenticated, signer, tokenAddress]);
+    // Important: Only include dependencies that should trigger a balance refresh
+    // Specifically excluding tokenBalance and tokenInfo to prevent loops
+  }, [isAuthenticated, signer, tokenAddress, getTokenBalance]);
+
 
   // Display loading state only if we're loading AND don't have a balance yet
   if (isLoading && !tokenBalance) {

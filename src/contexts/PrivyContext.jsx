@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 
@@ -32,6 +32,11 @@ export function PrivyAuthProvider({ children }) {
     }
   }, [privy.ready]);
 
+  // Track if balance fetch is in progress
+  const fetchingBalanceRef = useRef(false);
+  // Track token addresses we've already fetched
+  const fetchedTokensRef = useRef(new Set());
+  
   // Set up Ethereum provider and signer when wallet is connected
   useEffect(() => {
     const setupEthereumProvider = async () => {
@@ -40,6 +45,8 @@ export function PrivyAuthProvider({ children }) {
         setProvider(null);
         setSigner(null);
         setTokenBalance(null);
+        // Clear fetched tokens set when disconnected
+        fetchedTokensRef.current.clear();
         return;
       }
       
@@ -53,6 +60,9 @@ export function PrivyAuthProvider({ children }) {
           // Get signer for transactions
           const ethersSigner = await ethersProvider.getSigner();
           setSigner(ethersSigner);
+          
+          // Clear fetched tokens set on reconnect
+          fetchedTokensRef.current.clear();
         } else {
           console.log('No ethereum provider available');
         }
@@ -66,14 +76,30 @@ export function PrivyAuthProvider({ children }) {
     }
   }, [privy.authenticated, privy.ready]);
 
-  // Get token balance for a given token address
-  const getTokenBalance = async (tokenAddress) => {
+  // Get token balance for a given token address - memoized to prevent infinite loops
+  const getTokenBalance = useCallback(async (tokenAddress) => {
+    // Skip if no provider or signer
     if (!provider || !signer) {
       console.log('No provider or signer available, skipping balance fetch');
       return null;
     }
+    
+    // Skip if already fetching
+    if (fetchingBalanceRef.current) {
+      console.log('Balance fetch already in progress, skipping');
+      return { balance: tokenBalance, info: tokenInfo };
+    }
+    
+    // Skip if we've already fetched this token and have a balance
+    if (fetchedTokensRef.current.has(tokenAddress) && tokenBalance && tokenInfo) {
+      console.log('Already fetched balance for this token, using cached value');
+      return { balance: tokenBalance, info: tokenInfo };
+    }
 
     try {
+      // Set fetching flag to prevent concurrent calls
+      fetchingBalanceRef.current = true;
+      
       // Verify we can get the address
       const address = await signer.getAddress();
       console.log('Getting balance for address:', address);
@@ -89,6 +115,7 @@ export function PrivyAuthProvider({ children }) {
         name = await tokenContract.name();
       } catch (infoError) {
         console.error('Error fetching token info:', infoError);
+        fetchingBalanceRef.current = false;
         return null;
       }
       
@@ -100,14 +127,15 @@ export function PrivyAuthProvider({ children }) {
       
       console.log(`Token balance for ${address}: ${formattedBalance} ${symbol}`);
       
-      // Only update state if the balance has changed
-      // This prevents unnecessary re-renders
-      if (formattedBalance !== tokenBalance || 
-          !tokenInfo || 
-          tokenInfo.symbol !== symbol) {
-        setTokenBalance(formattedBalance);
-        setTokenInfo({ symbol, name, decimals });
-      }
+      // Update state
+      setTokenBalance(formattedBalance);
+      setTokenInfo({ symbol, name, decimals });
+      
+      // Mark this token as fetched
+      fetchedTokensRef.current.add(tokenAddress);
+      
+      // Reset fetching flag
+      fetchingBalanceRef.current = false;
       
       return { 
         balance: formattedBalance,
@@ -115,9 +143,10 @@ export function PrivyAuthProvider({ children }) {
       };
     } catch (error) {
       console.error('Error fetching token balance:', error);
+      fetchingBalanceRef.current = false;
       return null;
     }
-  };
+  }, [provider, signer, tokenBalance, tokenInfo]);
 
   // Function to purchase with tokens
   const purchaseWithToken = async (tokenAddress, recipientAddress, amount, itemId) => {
@@ -173,7 +202,8 @@ export function PrivyAuthProvider({ children }) {
     }
   };
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     ...privy,
     isLoading,
     isAuthenticated: privy.authenticated,
@@ -184,7 +214,7 @@ export function PrivyAuthProvider({ children }) {
     tokenInfo,
     getTokenBalance,
     purchaseWithToken
-  };
+  }), [privy, isLoading, provider, signer, tokenBalance, tokenInfo, getTokenBalance, purchaseWithToken]);
 
   return (
     <PrivyAuthContext.Provider value={value}>
