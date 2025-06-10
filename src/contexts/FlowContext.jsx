@@ -8,6 +8,7 @@ export function FlowProvider({ children }) {
   const [user, setUser] = useState({ loggedIn: null, addr: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [flowBalance, setFlowBalance] = useState(null);
 
   useEffect(() => {
     console.log('FlowProvider: Initializing...');
@@ -17,6 +18,13 @@ export function FlowProvider({ children }) {
         console.log('FlowProvider: User update received:', currentUser);
         setUser(currentUser);
         setLoading(false);
+        
+        // If user is connected, get their FLOW balance
+        if (currentUser.loggedIn && currentUser.addr) {
+          getFlowBalance(currentUser.addr);
+        } else {
+          setFlowBalance(null);
+        }
       });
     } catch (err) {
       console.error('FlowProvider: Error in FCL subscription:', err);
@@ -31,6 +39,37 @@ export function FlowProvider({ children }) {
       }
     };
   }, []);
+  
+  // Function to get FLOW token balance
+  const getFlowBalance = async (address) => {
+    if (!address) return;
+    
+    try {
+      const balance = await fcl.query({
+        cadence: `
+          import FungibleToken from 0xf233dcee88fe0abe
+          import FlowToken from 0x1654653399040a61
+
+          pub fun main(address: Address): UFix64 {
+            let vaultRef = getAccount(address)
+              .getCapability(/public/flowTokenBalance)
+              .borrow<&FlowToken.Vault{FungibleToken.Balance}>() 
+              ?? panic("Could not borrow Balance reference to the Vault")
+
+            return vaultRef.balance
+          }
+        `,
+        args: (arg, t) => [arg(address, t.Address)]
+      });
+      
+      console.log(`Flow balance for ${address}: ${balance}`);
+      setFlowBalance(balance);
+      return balance;
+    } catch (err) {
+      console.error('Error getting FLOW balance:', err);
+      return null;
+    }
+  };
 
   const connectWallet = async () => {
     console.log('FlowProvider: Connecting wallet...');
@@ -78,7 +117,9 @@ export function FlowProvider({ children }) {
         error,
         connectWallet,
         disconnectWallet,
-        isConnected
+        isConnected,
+        flowBalance,
+        getFlowBalance
       }}
     >
       {children}
