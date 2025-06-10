@@ -14,8 +14,8 @@ const SAMPLE_ITEMS = [
 // Token address on the Flow EVM
 const TOKEN_ADDRESS = '0x169bb04590fbf18b09739f951274aa5650dfccde'; // TSR token address
 
-// This would be the recipient address for purchases (e.g., your treasury/merchant wallet)
-const RECIPIENT_ADDRESS = '0x0987654321098765432109876543210987654321'; // Replace with your actual recipient address
+// Recipient address for purchases (treasury/merchant wallet)
+const RECIPIENT_ADDRESS = '0x0000000000000000000000023B1212B951A844f7'; // TSR treasury address
 
 export default function EvmToken() {
   const { isAuthenticated, login } = usePrivyAuth();
